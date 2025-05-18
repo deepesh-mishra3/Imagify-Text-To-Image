@@ -3,8 +3,11 @@ import mongoose from 'mongoose'
 const connectDB = async () => {
     try {
         const connectionParams = {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
+            ssl: true,
+            tls: true,
+            tlsAllowInvalidCertificates: false,
+            retryWrites: true,
+            w: 'majority'
         };
 
         // Log the connection string (without credentials) for debugging
