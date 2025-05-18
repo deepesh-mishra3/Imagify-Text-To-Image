@@ -10,23 +10,27 @@ import paymentRouter from './routes/paymentRoutes.js';
 const PORT = process.env.PORT || 4000;
 const app = express();
 
-// Configure Express middleware
+// Basic middleware
 app.use(express.json()); // for parsing JSON
 app.use(express.urlencoded({ extended: true })); // for form data
 
 // Special handling for Stripe webhook
 app.use('/api/payment/webhook', express.raw({type: 'application/json'}));
 
-// Configure CORS for production
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://imagify-text-to-image.netlify.app', 'https://imagify-text-to-image.onrender.com']
-    : 'http://localhost:5173',
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
+// CORS middleware
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'https://imagify-image-generator.netlify.app');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, token');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        res.header('Access-Control-Max-Age', '86400'); // 24 hours
+        return res.status(200).json({});
+    }
+    next();
+});
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -38,7 +42,7 @@ const startServer = async () => {
     try {
         // Connect to MongoDB
         await connectDB();
-        console.log('MongoDB connected successfully');
+        console.log('✅ MongoDB connected successfully');
 
         // Mount routes after successful DB connection
         app.use('/api/user', userRouter);
@@ -47,10 +51,11 @@ const startServer = async () => {
 
         // Start server
         app.listen(PORT, () => {
-            console.log('Server is running on port: ' + PORT);
+            console.log('🚀 Server is running on port:', PORT);
+            console.log('🔒 CORS enabled for: https://imagify-image-generator.netlify.app');
         });
     } catch (error) {
-        console.error('Failed to start server:', error);
+        console.error('❌ Failed to start server:', error);
         process.exit(1);
     }
 };
