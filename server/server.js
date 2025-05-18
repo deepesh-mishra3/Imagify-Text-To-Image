@@ -10,7 +10,7 @@ import paymentRouter from './routes/paymentRoutes.js';
 const PORT = process.env.PORT || 4000;
 const app = express();
 
-// app.use(express.json());
+// Configure Express middleware
 app.use(express.json()); // for parsing JSON
 app.use(express.urlencoded({ extended: true })); // for form data
 
@@ -20,27 +20,40 @@ app.use('/api/payment/webhook', express.raw({type: 'application/json'}));
 // Configure CORS for production
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://your-netlify-app.netlify.app'] // Replace with your Netlify domain
-    : 'http://localhost:5173', // Vite's default development port
+    ? ['https://imagify-text-to-image.netlify.app', 'https://imagify-text-to-image.onrender.com']
+    : 'http://localhost:5173',
   credentials: true,
   optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
 
-// connecting with the database 
-await connectDB();
-
-// http://localhost:4000/api/user/register
-// http://localhost:4000/api/user/login
-app.use('/api/user', userRouter); // mounting waala concept 
-app.use('/api/image', imageRouter);
-app.use('/api/payment', paymentRouter);
-
+// Health check endpoint
 app.get('/', (req, res) => {
     res.send("API Working Fine");
-})
+});
 
-app.listen(PORT, () => {
-    console.log('server is running on port : ' + PORT);
-})
+// Initialize server and database
+const startServer = async () => {
+    try {
+        // Connect to MongoDB
+        await connectDB();
+        console.log('MongoDB connected successfully');
+
+        // Mount routes after successful DB connection
+        app.use('/api/user', userRouter);
+        app.use('/api/image', imageRouter);
+        app.use('/api/payment', paymentRouter);
+
+        // Start server
+        app.listen(PORT, () => {
+            console.log('Server is running on port: ' + PORT);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+};
+
+// Start the server
+startServer();

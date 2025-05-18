@@ -5,13 +5,15 @@ const connectDB = async () => {
         const connectionParams = {
             ssl: true,
             tls: true,
-            tlsInsecure: true, // Required for some MongoDB Atlas connections
+            tlsAllowInvalidCertificates: true, // Allow invalid certificates for troubleshooting
+            tlsInsecure: true,
             retryWrites: true,
             w: 'majority',
             minPoolSize: 1,
             maxPoolSize: 10,
-            serverSelectionTimeoutMS: 5000,
+            serverSelectionTimeoutMS: 30000, // Increased timeout
             socketTimeoutMS: 45000,
+            family: 4 // Force IPv4
         };
 
         // Log the connection string (without credentials) for debugging
@@ -24,6 +26,10 @@ const connectDB = async () => {
             console.log('Connection string host:', hostPart.split('?')[0]);
         }
 
+        // Force TLS version 1.2
+        process.env.NODE_TLS_MIN_VERSION = 'TLSv1.2';
+        process.env.NODE_TLS_MAX_VERSION = 'TLSv1.3';
+
         await mongoose.connect(process.env.MONGODB_URL, connectionParams);
 
         mongoose.connection.on('connected', () => {
@@ -35,7 +41,8 @@ const connectDB = async () => {
             // Attempt to reconnect on error
             setTimeout(() => {
                 console.log('Attempting to reconnect to MongoDB...');
-                mongoose.connect(process.env.MONGODB_URL, connectionParams);
+                mongoose.connect(process.env.MONGODB_URL, connectionParams)
+                    .catch(err => console.error('Reconnection failed:', err));
             }, 5000);
         });
 
@@ -44,7 +51,8 @@ const connectDB = async () => {
             // Attempt to reconnect on disconnection
             setTimeout(() => {
                 console.log('Attempting to reconnect to MongoDB...');
-                mongoose.connect(process.env.MONGODB_URL, connectionParams);
+                mongoose.connect(process.env.MONGODB_URL, connectionParams)
+                    .catch(err => console.error('Reconnection failed:', err));
             }, 5000);
         });
 
@@ -56,7 +64,8 @@ const connectDB = async () => {
                 name: error.name,
                 message: error.message,
                 reason: error.reason,
-                code: error.code
+                code: error.code,
+                stack: error.stack
             });
         }
         throw error;
